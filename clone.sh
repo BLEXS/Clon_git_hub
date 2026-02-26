@@ -1,61 +1,68 @@
 #!/bin/bash
 
-# --- COLORES ---
-RED='\033[0;31m'
+# --- COLORES MATRIX ---
+BLACK='\033[0;30m'
 GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
+BRIGHT_GREEN='\033[1;32m'
+DIM_GREEN='\033[2;32m'
 NC='\033[0m'
 
 clear
-echo -e "${BLUE}=========================================${NC}"
-echo -e "${BLUE}  CLONADOR V2 - DETECTOR DE USUARIO REAL ${NC}"
-echo -e "${BLUE}=========================================${NC}"
 
-# 1. DETECTAR EL USUARIO REAL Y SU CARPETA HOME
-# Si se usa sudo, SUDO_USER contiene el nombre del usuario real.
+# Banner Matrix
+echo -e "${BRIGHT_GREEN}"
+echo "  ██████╗██╗      ██████╗ ███╗   ██╗ █████╗ ██████╗  ██████╗ ██████╗ "
+echo " ██╔════╝██║     ██╔═══██╗████╗  ██║██╔══██╗██╔══██╗██╔═══██╗██╔══██╗"
+echo " ██║     ██║     ██║   ██║██╔██╗ ██║███████║██║  ██║██║   ██║██████╔╝"
+echo " ██║     ██║     ██║   ██║██║╚██╗██║██╔══██║██║  ██║██║   ██║██╔══██╗"
+echo " ╚██████╗███████╗╚██████╔╝██║ ╚████║██║  ██║██████╔╝╚██████╔╝██║  ██║"
+echo "  ╚═════╝╚══════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝"
+echo -e "${NC}"
+echo -e "${GREEN}⚡ =========================================== ⚡${NC}"
+echo -e "${BRIGHT_GREEN}  ⚡  CLONADOR V2 - DETECTOR DE USUARIO REAL  ⚡${NC}"
+echo -e "${GREEN}⚡ =========================================== ⚡${NC}"
+
+# --- DETECTAR USUARIO REAL ---
 if [ -n "$SUDO_USER" ]; then
     REAL_USER="$SUDO_USER"
-    # Obtenemos el home de ese usuario específico
     REAL_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
 else
     REAL_USER="$USER"
     REAL_HOME="$HOME"
 fi
 
-echo -e "${YELLOW}[*] Usuario detectado: $REAL_USER${NC}"
-echo -e "${YELLOW}[*] Home detectado: $REAL_HOME${NC}"
+echo -e "${DIM_GREEN}[*] Usuario detectado: ${BRIGHT_GREEN}$REAL_USER${NC}"
+echo -e "${DIM_GREEN}[*] Home detectado:    ${BRIGHT_GREEN}$REAL_HOME${NC}"
 
-# 2. DETECTAR ESCRITORIO (En la carpeta del usuario real)
+# --- DETECTAR ESCRITORIO ---
 if [ -d "$REAL_HOME/Escritorio" ]; then
     DESKTOP_DIR="$REAL_HOME/Escritorio"
 elif [ -d "$REAL_HOME/Desktop" ]; then
     DESKTOP_DIR="$REAL_HOME/Desktop"
 else
-    echo -e "${RED}[!] No encontré Escritorio ni Desktop en $REAL_HOME${NC}"
+    echo -e "${BRIGHT_GREEN}[!] No encontré Escritorio ni Desktop en $REAL_HOME${NC}"
     exit 1
 fi
 
 TARGET_DIR="$DESKTOP_DIR/Herramientas"
 
-# 3. CREAR CARPETA 'HERRAMIENTAS'
+# --- CREAR CARPETA HERRAMIENTAS ---
 if [ ! -d "$TARGET_DIR" ]; then
-    echo -e "${YELLOW}[*] Creando carpeta 'Herramientas' en tu escritorio...${NC}"
+    echo -e "${DIM_GREEN}[*] Creando carpeta 'Herramientas' en tu escritorio...${NC}"
     mkdir -p "$TARGET_DIR"
-    # Si somos root, arreglamos los permisos inmediatamente
     if [ -n "$SUDO_USER" ]; then
         chown "$REAL_USER":"$REAL_USER" "$TARGET_DIR"
     fi
 fi
 
-# 4. CREAR ACCESO DIRECTO (Optimizado)
+# --- CREAR ACCESO DIRECTO ---
 SCRIPT_PATH=$(realpath "$0")
 SHORTCUT_NAME="ClonarRepo.desktop"
 SHORTCUT_PATH="$DESKTOP_DIR/$SHORTCUT_NAME"
 
 if [ ! -f "$SHORTCUT_PATH" ]; then
-    echo -e "${YELLOW}[*] Creando acceso directo...${NC}"
-    
+    echo -e "${DIM_GREEN}[*] Creando acceso directo...${NC}"
+
     cat <<EOF > "$SHORTCUT_PATH"
 [Desktop Entry]
 Version=1.0
@@ -70,45 +77,55 @@ StartupNotify=false
 EOF
 
     chmod +x "$SHORTCUT_PATH"
-    
-    # IMPORTANTE: Cambiar dueño del acceso directo al usuario real
+
     if [ -n "$SUDO_USER" ]; then
         chown "$REAL_USER":"$REAL_USER" "$SHORTCUT_PATH"
     fi
-    
-    echo -e "${GREEN}[OK] Acceso directo creado en TU escritorio ($DESKTOP_DIR).${NC}"
+
+    echo -e "${BRIGHT_GREEN}[OK] ⚡ Acceso directo creado en: ${GREEN}$DESKTOP_DIR${NC}"
 fi
 
-# 5. SOLICITAR URL Y CLONAR
+# --- SOLICITAR URL Y CLONAR ---
 echo ""
-echo -e "${YELLOW}Pega la URL del repositorio de GitHub:${NC}"
+echo -e "${GREEN}⚡ =========================================== ⚡${NC}"
+echo -e "${BRIGHT_GREEN}  Pega la URL del repositorio de GitHub:${NC}"
+echo -e "${GREEN}⚡ =========================================== ⚡${NC}"
 read -p "> " REPO_URL
 
 if [ -z "$REPO_URL" ]; then
-    echo -e "${RED}[!] URL vacía. Saliendo.${NC}"
+    echo -e "${BRIGHT_GREEN}[!] URL vacía. Saliendo.${NC}"
     exit 1
 fi
 
 cd "$TARGET_DIR" || exit
 
-echo -e "${BLUE}[*] Clonando...${NC}"
+echo -e "${DIM_GREEN}[*] Clonando repositorio...${NC}"
 git clone "$REPO_URL"
 
-if [ $? -eq 0 ]; then
+CLONE_STATUS=$?
+
+if [ $CLONE_STATUS -eq 0 ]; then
     echo ""
-    echo -e "${GREEN}✔ Listo.${NC}"
-    
-    # PASO FINAL: Si se corrió con sudo, el repo clonado será de root.
-    # Vamos a devolvértelo a tu usuario.
+    echo -e "${BRIGHT_GREEN}⚡ Clonado exitosamente.${NC}"
+
     if [ -n "$SUDO_USER" ]; then
-        echo -e "${YELLOW}[*] Ajustando permisos de los archivos descargados...${NC}"
-        # Obtenemos el nombre de la carpeta recién clonada
         REPO_NAME=$(basename "$REPO_URL" .git)
-        chown -R "$REAL_USER":"$REAL_USER" "$TARGET_DIR/$REPO_NAME"
+        CLONED_PATH="$TARGET_DIR/$REPO_NAME"
+
+        if [ -d "$CLONED_PATH" ]; then
+            chown -R "$REAL_USER":"$REAL_USER" "$CLONED_PATH"
+            echo -e "${BRIGHT_GREEN}[OK] ⚡ Permisos asignados a ${GREEN}$REAL_USER${BRIGHT_GREEN} correctamente.${NC}"
+        else
+            echo -e "${BRIGHT_GREEN}[!] No se encontró la carpeta clonada: $CLONED_PATH${NC}"
+        fi
     fi
-    
+
 else
-    echo -e "${RED}✘ Error al clonar.${NC}"
+    echo -e "${BRIGHT_GREEN}[✘] Error al clonar el repositorio.${NC}"
 fi
 
+echo ""
+echo -e "${GREEN}⚡ =========================================== ⚡${NC}"
+echo -e "${DIM_GREEN}              Creado por: BLEXS${NC}"
+echo -e "${GREEN}⚡ =========================================== ⚡${NC}"
 echo ""
